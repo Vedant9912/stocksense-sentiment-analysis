@@ -1,0 +1,81 @@
+"""
+StockSense AI Microservice
+---------------------------
+Standalone FastAPI worker. Spring Boot calls this internally; it is NOT
+exposed to the browser directly. No auth here on purpose -- this service
+should sit behind an internal network / firewall, with Spring Boot as the
+only public-facing entry point.
+
+Run with:  uvicorn app.main:app --host 0.0.0.0 --port 8000
+"""
+from collections import Counter
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.model import get_engine
+from app.scraper import fetch_headlines
+from app.schemas import SentimentResult, HeadlineSentiment
+
+app = FastAPI(
+    title="StockSense AI Engine",
+    description="FinBERT-powered news sentiment scoring for stock tickers",
+    version="1.0.0",
+)
+
+# CORS only matters if you ever call this directly from a browser during
+# local dev. In production, only Spring Boot's server-side WebClient hits this.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.on_event("startup")
+def warm_up_model() -> None:
+    """Load FinBERT into memory once, at boot, instead of on first request."""
+    get_engine()
+
+
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+
+@app.get("/sentiment/{ticker}", response_model=SentimentResult)
+def get_sentiment(ticker: str, limit: int = 15) -> SentimentResult:
+    ticker = ticker.upper().strip()
+
+    headlines = fetch_headlines(ticker, limit=limit)
+    if not headlines:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No recent news headlines found for '{ticker}'.",
+        )
+
+    engine = get_engine()
+    predictions = engine.predict(headlines)
+
+    counts = Counter(p["label"] for p in predictions)
+    total = len(predictions)
+
+    positive_pct = round(counts.get("positive", 0) / total * 100, 1)
+    negative_pct = round(counts.get("negative", 0) / total * 100, 1)
+    neutral_pct = round(counts.get("neutral", 0) / total * 100, 1)
+
+    overall_label = counts.most_common(1)[0][0]
+    # -1 (all negative) .. +1 (all positive), used for the gauge on the frontend
+    overall_score = round((positive_pct - negative_pct) / 100, 3)
+
+    return SentimentResult(
+        ticker=ticker,
+        positive=positive_pct,
+        negative=negative_pct,
+        neutral=neutral_pct,
+        overall_label=overall_label,
+        overall_score=overall_score,
+        headline_count=total,
+        headlines=[HeadlineSentiment(**p) for p in predictions],
+    )
