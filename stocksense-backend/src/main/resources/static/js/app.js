@@ -552,7 +552,93 @@ function renderCompareResults(t1, d1, t2, d2) {
   setCompareBar(2, 'neg', d2.negative);
   setCompareBar(2, 'neu', d2.neutral);
 
+  // 1. Populate H2H Table Columns
+  document.getElementById('comp-t1-header').textContent = t1;
+  document.getElementById('comp-t2-header').textContent = t2;
+
+  // Rating Matrix
+  document.getElementById('m-rating-1').textContent = label1.toUpperCase();
+  document.getElementById('m-rating-1').className = `wl-label ${label1}`;
+  document.getElementById('m-rating-2').textContent = label2.toUpperCase();
+  document.getElementById('m-rating-2').className = `wl-label ${label2}`;
+  document.getElementById('m-rating-delta').textContent = label1 === label2 ? 'MATCHING' : `${label1.toUpperCase()} vs ${label2.toUpperCase()}`;
+  document.getElementById('m-rating-delta').style.color = label1 === label2 ? 'var(--text-muted)' : 'var(--text-cyan)';
+
+  // Scores Matrix
+  document.getElementById('m-score-1').textContent = score1.toFixed(2);
+  document.getElementById('m-score-2').textContent = score2.toFixed(2);
+  const scoreDelta = score1 - score2;
+  document.getElementById('m-score-delta').textContent = scoreDelta >= 0 ? `+${scoreDelta.toFixed(2)} (${t1})` : `${scoreDelta.toFixed(2)} (${t2})`;
+  document.getElementById('m-score-delta').style.color = scoreDelta >= 0 ? 'var(--bullish)' : 'var(--bearish)';
+
+  // Bullish Ratio Matrix
+  document.getElementById('m-bull-1').textContent = `${(d1.positive || 0).toFixed(0)}%`;
+  document.getElementById('m-bull-2').textContent = `${(d2.positive || 0).toFixed(0)}%`;
+  const bullDelta = (d1.positive || 0) - (d2.positive || 0);
+  document.getElementById('m-bull-delta').textContent = bullDelta >= 0 ? `+${bullDelta.toFixed(0)}% (${t1})` : `${bullDelta.toFixed(0)}% (${t2})`;
+  document.getElementById('m-bull-delta').style.color = bullDelta >= 0 ? 'var(--bullish)' : 'var(--bearish)';
+
+  // Bearish Ratio Matrix
+  document.getElementById('m-bear-1').textContent = `${(d1.negative || 0).toFixed(0)}%`;
+  document.getElementById('m-bear-2').textContent = `${(d2.negative || 0).toFixed(0)}%`;
+  const bearDelta = (d1.negative || 0) - (d2.negative || 0);
+  document.getElementById('m-bear-delta').textContent = bearDelta >= 0 ? `+${bearDelta.toFixed(0)}% (${t1})` : `${bearDelta.toFixed(0)}% (${t2})`;
+  document.getElementById('m-bear-delta').style.color = bearDelta >= 0 ? 'var(--bearish)' : 'var(--bullish)';
+
+  // Headline Count Matrix
+  const count1 = d1.headlineCount ?? d1.headlines?.length ?? 0;
+  const count2 = d2.headlineCount ?? d2.headlines?.length ?? 0;
+  document.getElementById('m-count-1').textContent = count1;
+  document.getElementById('m-count-2').textContent = count2;
+  const countDelta = count1 - count2;
+  document.getElementById('m-count-delta').textContent = countDelta >= 0 ? `+${countDelta} (${t1})` : `${countDelta} (${t2})`;
+  document.getElementById('m-count-delta').style.color = 'var(--text-cyan)';
+
+  // 2. Generate H2H Context Summary Paragraph
+  let summaryText = "";
+  const stronger = score1 > score2 ? t1 : t2;
+  const weaker = score1 > score2 ? t2 : t1;
+  const diffAbs = Math.abs(score1 - score2).toFixed(2);
+
+  if (diffAbs < 0.15) {
+    summaryText = `Both ${t1} and ${t2} exhibit a closely matched sentiment profile. The difference in their aggregate sentiment scores is negligible (${diffAbs}). ${t1} is rated as ${label1.toUpperCase()} (score ${score1.toFixed(2)}) and ${t2} is rated as ${label2.toUpperCase()} (score ${score2.toFixed(2)}).`;
+  } else {
+    summaryText = `${stronger} displays a noticeably more positive sentiment profile compared to ${weaker}. The sentiment delta is ${diffAbs}. ${stronger} has a bullish ratio of ${score1 > score2 ? (d1.positive || 0).toFixed(0) : (d2.positive || 0).toFixed(0)}% (vs ${score1 > score2 ? (d2.positive || 0).toFixed(0) : (d1.positive || 0).toFixed(0)}%), indicating stronger overall market optimism.`;
+  }
+  document.getElementById('compare-summary-text').textContent = summaryText;
+
+  // 3. Render Side-by-Side News Headlines (max 4 per ticker)
+  renderCompareHeadlines('comp-t1-hl-title', 'comp-t1-hl-list', t1, d1.headlines);
+  renderCompareHeadlines('comp-t2-hl-title', 'comp-t2-hl-list', t2, d2.headlines);
+
   compareResults.classList.remove('hidden');
+}
+
+function renderCompareHeadlines(titleId, listId, ticker, headlines) {
+  document.getElementById(titleId).textContent = `${ticker} LATEST HEADLINES`;
+  const list = document.getElementById(listId);
+  list.innerHTML = '';
+
+  const subset = (headlines || []).slice(0, 4);
+  if (subset.length === 0) {
+    list.innerHTML = `<div class="empty-state" style="padding: 12px; font-size:11px;">No news reports available.</div>`;
+    return;
+  }
+
+  subset.forEach(h => {
+    const hasUrl = h.url && h.url !== '#' && h.url !== '';
+    const row = document.createElement(hasUrl ? 'a' : 'div');
+    if (hasUrl) {
+      row.href = h.url;
+      row.target = '_blank';
+    }
+    row.className = `headline-row label-${h.label}`;
+    row.innerHTML = `
+      <span class="headline-text" style="font-size: 11px;">${escapeHtml(h.headline)}</span>
+      <span class="headline-score">${h.label.toUpperCase()}</span>
+    `;
+    list.appendChild(row);
+  });
 }
 
 function setCompareBar(tickerNum, kind, value) {

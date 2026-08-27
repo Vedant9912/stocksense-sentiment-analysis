@@ -6,7 +6,7 @@
 <title>StockSense -- Terminal Edition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/style.css?v=3">
+<link rel="stylesheet" href="/css/style.css?v=4">
 </head>
 <body>
 
@@ -291,6 +291,72 @@
             </div>
           </div>
         </div>
+
+        <!-- H2H Context Summary Box -->
+        <div class="card compare-summary-card" id="compare-summary-box">
+          <h3>H2H SENTIMENT CONTEXT SUMMARY</h3>
+          <p id="compare-summary-text">Waiting for data compiling...</p>
+        </div>
+
+        <!-- H2H Metrics Matrix Table -->
+        <div class="card compare-table-card">
+          <h3>H2H METRICS MATRIX</h3>
+          <table class="watchlist-table compare-metrics-table">
+            <thead>
+              <tr>
+                <th>METRIC KEY</th>
+                <th id="comp-t1-header">TICKER 1</th>
+                <th id="comp-t2-header">TICKER 2</th>
+                <th style="text-align: right;">COMPARATIVE DELTA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>SENTIMENT RATING</td>
+                <td id="m-rating-1">--</td>
+                <td id="m-rating-2">--</td>
+                <td id="m-rating-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>AGGREGATE SCORE</td>
+                <td id="m-score-1">--</td>
+                <td id="m-score-2">--</td>
+                <td id="m-score-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>BULLISH RATIO</td>
+                <td id="m-bull-1">--</td>
+                <td id="m-bull-2">--</td>
+                <td id="m-bull-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>BEARISH RATIO</td>
+                <td id="m-bear-1">--</td>
+                <td id="m-bear-2">--</td>
+                <td id="m-bear-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>SCRAPED HEADLINES</td>
+                <td id="m-count-1">--</td>
+                <td id="m-count-2">--</td>
+                <td id="m-count-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Side-by-Side News Headlines -->
+        <div class="compare-headlines-grid">
+          <div class="card">
+            <h3 id="comp-t1-hl-title">TICKER 1 HEADLINES</h3>
+            <div class="headline-list" id="comp-t1-hl-list"></div>
+          </div>
+          <div class="card">
+            <h3 id="comp-t2-hl-title">TICKER 2 HEADLINES</h3>
+            <div class="headline-list" id="comp-t2-hl-list"></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -303,6 +369,6 @@
   <input type="text" id="terminal-input" placeholder="Enter CLI command (/analyze TICKER, /compare TICKER1 TICKER2, /watchlist, /help) or type to write notes..." autocomplete="off">
 </div>
 
-<script src="/js/app.js?v=3"></script>
+<script src="/js/app.js?v=4"></script>
 </body>
 </html>

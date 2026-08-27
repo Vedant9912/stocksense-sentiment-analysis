@@ -782,3 +782,115 @@ a {
 .hidden {
   display: none !important;
 }
+
+/* --- ADVANCED H2H COMPARE STYLING --- */
+.compare-summary-card {
+  border-left: 4px solid var(--text-cyan);
+  background: #050b0f;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.compare-summary-card h3 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-cyan);
+  margin: 0 0 8px;
+  letter-spacing: 0.05em;
+}
+
+.compare-summary-card p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ffffff;
+  margin: 0;
+}
+
+.compare-table-card {
+  margin-bottom: 28px;
+}
+
+.compare-table-card h3 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-cyan);
+  margin: 0 0 14px;
+  letter-spacing: 0.05em;
+}
+
+.compare-metrics-table {
+  border-collapse: collapse;
+}
+
+.compare-metrics-table td {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  border-bottom: 1px solid #1c1c1c;
+}
+
+.compare-metrics-table tr:hover {
+  background: #050505;
+}
+
+.compare-headlines-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (max-width: 860px) {
+  .compare-headlines-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- IMPROVED WATCHLIST STYLING --- */
+.watchlist-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border);
+}
+
+.watchlist-table td {
+  border-bottom: 1px solid #161616;
+}
+
+.watchlist-table tbody tr {
+  transition: background 0.15s;
+}
+
+.watchlist-table tbody tr:hover {
+  background: #080a08; /* Dark green tint on hover */
+  border-left: 2px solid var(--bullish);
+}
+
+.wl-ticker {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #111;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.wl-btn-analyze {
+  border: 1px solid var(--text-cyan);
+  color: var(--text-cyan);
+}
+
+.wl-btn-analyze:hover {
+  background: #03202b;
+  color: #ffffff;
+}
+
+.wl-btn-remove {
+  border: 1px solid var(--bearish);
+}
+
+.wl-btn-remove:hover {
+  background: var(--bearish-dim);
+  color: #ffffff;
+}
