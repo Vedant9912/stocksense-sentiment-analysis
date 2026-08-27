@@ -286,10 +286,12 @@ function renderResult(ticker, data) {
   const list = document.getElementById('headline-list');
   list.innerHTML = '';
   (data.headlines || []).forEach(h => {
-    // Render headline as an anchor tag clicking straight to the source URL
-    const row = document.createElement('a');
-    row.href = h.url || '#';
-    row.target = '_blank';
+    const hasUrl = h.url && h.url !== '#' && h.url !== '';
+    const row = document.createElement(hasUrl ? 'a' : 'div');
+    if (hasUrl) {
+      row.href = h.url;
+      row.target = '_blank';
+    }
     row.className = `headline-row label-${h.label}`;
     row.innerHTML = `
       <span class="headline-text">${escapeHtml(h.headline)}</span>
