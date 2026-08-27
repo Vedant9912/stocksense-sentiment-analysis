@@ -777,3 +777,8 @@ a {
     padding: 20px 16px 60px;
   }
 }
+
+/* Hidden elements utility */
+.hidden {
+  display: none !important;
+}
