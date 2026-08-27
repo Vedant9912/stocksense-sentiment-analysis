@@ -116,14 +116,16 @@ public class SentimentResponse {
         private String headline;
         private String label;
         private Double score;
+        private String url;
 
         public HeadlineDto() {
         }
 
-        public HeadlineDto(String headline, String label, Double score) {
+        public HeadlineDto(String headline, String label, Double score, String url) {
             this.headline = headline;
             this.label = label;
             this.score = score;
+            this.url = url;
         }
 
         public String getHeadline() {
@@ -148,6 +150,14 @@ public class SentimentResponse {
 
         public void setScore(Double score) {
             this.score = score;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
         }
     }
 }

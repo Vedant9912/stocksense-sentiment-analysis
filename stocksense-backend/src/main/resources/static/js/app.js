@@ -5,7 +5,7 @@ if (!token) {
   window.location.href = '/login.html';
 }
 
-document.getElementById('username-display').textContent = username ? `@${username}` : '';
+document.getElementById('username-display').textContent = username ? `${username.toUpperCase()}` : '';
 
 document.getElementById('logout-btn').addEventListener('click', () => {
   localStorage.removeItem('stocksense_token');
@@ -14,7 +14,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 });
 
 /* ==========================================================================
-   Router Logic
+   Client-Side View Router
    ========================================================================== */
 const navLinks = document.querySelectorAll('.nav-link');
 const views = document.querySelectorAll('.view-pane');
@@ -44,20 +44,19 @@ function switchView(viewName) {
     }
   });
 
-  // Action hooks when switching views
   if (viewName === 'watchlist') {
     loadWatchlist();
   }
 }
 
-// Default view
+// Default View
 switchView('dashboard');
 
 /* ==========================================================================
-   Helper Functions (API communication)
+   Helper Utilities
    ========================================================================== */
 const POLL_INTERVAL_MS = 2000;
-const MAX_POLLS = 30; // ~60s ceiling before giving up
+const MAX_POLLS = 30;
 
 async function authedFetch(url, options = {}) {
   const res = await fetch(url, {
@@ -79,10 +78,10 @@ async function authedFetch(url, options = {}) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function formatTime(iso) {
-  if (!iso) return 'just now';
+  if (!iso) return 'JUST NOW';
   try {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch { return iso; }
+    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toUpperCase();
+  } catch { return iso.toUpperCase(); }
 }
 
 function escapeHtml(str) {
@@ -92,7 +91,70 @@ function escapeHtml(str) {
 }
 
 /* ==========================================================================
-   Dashboard logic (Single Ticker Search)
+   Live TradingView Technical Chart Integration with Studies
+   ========================================================================== */
+let tradingViewScriptLoaded = false;
+
+function loadTradingViewWidget(ticker) {
+  // Clear previous chart container
+  const chartDiv = document.getElementById('tradingview-chart');
+  chartDiv.innerHTML = '';
+
+  // Determine correct exchange format for ticker
+  // Indian stocks fallback to NSE, US stocks to NASDAQ
+  let exchangeTicker = ticker.toUpperCase();
+  if (['RELIANCE', 'TCS', 'INFY'].includes(exchangeTicker)) {
+    exchangeTicker = `NSE:${exchangeTicker}`;
+  } else {
+    exchangeTicker = `NASDAQ:${exchangeTicker}`;
+  }
+
+  if (tradingViewScriptLoaded) {
+    initWidget(exchangeTicker);
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/tv.js';
+    script.type = 'text/javascript';
+    script.onload = () => {
+      tradingViewScriptLoaded = true;
+      initWidget(exchangeTicker);
+    };
+    document.head.appendChild(script);
+  }
+}
+
+function initWidget(symbol) {
+  try {
+    new TradingView.widget({
+      "width": "100%",
+      "height": 450,
+      "symbol": symbol,
+      "interval": "D",
+      "timezone": "Etc/UTC",
+      "theme": "dark",
+      "style": "1",
+      "locale": "en",
+      "toolbar_bg": "#0a0a0a",
+      "enable_publishing": false,
+      "hide_side_toolbar": false,
+      "allow_symbol_change": true,
+      "container_id": "tradingview-chart",
+      // Pre-apply 10-15 key indicators inside basic studies (EMA, SMA, RSI, MACD, Bollinger Bands)
+      "studies": [
+        "MASimple@tv-basicstudies",
+        "MAExp@tv-basicstudies",
+        "RSI@tv-basicstudies",
+        "MACD@tv-basicstudies",
+        "BB@tv-basicstudies"
+      ]
+    });
+  } catch (e) {
+    console.error("Failed to load TradingView widget:", e);
+  }
+}
+
+/* ==========================================================================
+   Search Dashboard Logic
    ========================================================================== */
 const tickerInput = document.getElementById('ticker-input');
 const searchBtn = document.getElementById('search-btn');
@@ -135,32 +197,33 @@ async function runSearch() {
 
   searchBtn.disabled = true;
   resultSection.style.display = 'none';
-  setLoadingStatus(`Checking cached sentiment for ${ticker}...`);
+  setLoadingStatus(`SYS: FETCHING CACHED SENTIMENT FOR ${ticker}...`);
 
   try {
     const res = await authedFetch(`/api/stocks/sentiment/${ticker}`);
 
     if (res.status === 200) {
       const data = await res.json();
-      setStatus(`Loaded from cache · last updated ${formatTime(data.lastUpdated)}`);
+      setStatus(`SYS: CACHE HIT · LAST SECURED RECORD ${formatTime(data.lastUpdated)}`);
       currentTicker = ticker;
       currentData = data;
       renderResult(ticker, data);
       updateWatchlistStar(ticker);
+      loadTradingViewWidget(ticker);
       return;
     }
 
     if (res.status === 202) {
-      setLoadingStatus(`No fresh data cached -- asking the AI engine to read the news on ${ticker}...`);
+      setLoadingStatus(`SYS: CACHE MISS -- DISPATCHING AI RSS SCRAPER FOR ${ticker}...`);
       await pollForResult(ticker);
       return;
     }
 
     const errData = await res.json().catch(() => ({}));
-    setStatus(errData.error || `Could not fetch sentiment for ${ticker}`, true);
+    setStatus(errData.error || `SYS ERROR: CANNOT COMPUTE FOR ${ticker}`, true);
   } catch (err) {
     if (err.message !== 'Session expired') {
-      setStatus('Something went wrong. Please try again.', true);
+      setStatus('SYS ERROR: NETWORK EXCEPTION IN COMPILING SENTIMENT', true);
     }
   } finally {
     searchBtn.disabled = false;
@@ -175,35 +238,36 @@ async function pollForResult(ticker) {
     try {
       res = await authedFetch(`/api/stocks/sentiment/${ticker}/status`);
     } catch (err) {
-      return; // session expired, already redirected
+      return;
     }
 
     if (res.status === 200) {
       const data = await res.json();
-      setStatus(`Fresh sentiment fetched just now for ${ticker}`);
+      setStatus(`SYS: COMPILE DONE · AI ANALYSIS MERGED FOR ${ticker}`);
       currentTicker = ticker;
       currentData = data;
       renderResult(ticker, data);
       updateWatchlistStar(ticker);
+      loadTradingViewWidget(ticker);
       return;
     }
 
     if (res.status === 502) {
       const data = await res.json().catch(() => ({}));
-      setStatus(data.error || `AI engine could not analyze ${ticker}`, true);
+      setStatus(data.error || `SYS ERROR: MODEL PIPELINE CRASHED FOR ${ticker}`, true);
       return;
     }
 
-    setLoadingStatus(`Reading recent headlines and scoring sentiment with FinBERT... (${attempt + 1})`);
+    setLoadingStatus(`SYS: CLASSIFYING RSS HEADLINES VIA FinBERT MODEL... (${attempt + 1})`);
   }
 
-  setStatus('This is taking longer than expected. Please try again in a moment.', true);
+  setStatus('SYS ERROR: COMPUTATION TIME EXCEEDED THRESHOLD. RETRY.', true);
 }
 
 function renderResult(ticker, data) {
   document.getElementById('result-ticker').textContent = ticker;
   document.getElementById('result-meta').textContent =
-    `${data.headlineCount ?? data.headlines?.length ?? 0} headlines · source: ${data.source || 'live'}`;
+    `${data.headlineCount ?? data.headlines?.length ?? 0} HEADLINES ANALYZED · FEED SOURCE: ${data.source.toUpperCase()}`;
 
   const score = Math.max(-1, Math.min(1, data.overallScore ?? 0));
   const angle = score * 90;
@@ -213,7 +277,7 @@ function renderResult(ticker, data) {
   document.getElementById('gauge-label').textContent = label;
   document.getElementById('gauge-label').style.color =
     label === 'positive' ? 'var(--bullish)' : label === 'negative' ? 'var(--bearish)' : 'var(--neutral)';
-  document.getElementById('gauge-score').textContent = `score: ${score.toFixed(2)}`;
+  document.getElementById('gauge-score').textContent = `SCORE: ${score.toFixed(2)}`;
 
   setBar('positive', data.positive);
   setBar('negative', data.negative);
@@ -222,11 +286,14 @@ function renderResult(ticker, data) {
   const list = document.getElementById('headline-list');
   list.innerHTML = '';
   (data.headlines || []).forEach(h => {
-    const row = document.createElement('div');
+    // Render headline as an anchor tag clicking straight to the source URL
+    const row = document.createElement('a');
+    row.href = h.url || '#';
+    row.target = '_blank';
     row.className = `headline-row label-${h.label}`;
     row.innerHTML = `
       <span class="headline-text">${escapeHtml(h.headline)}</span>
-      <span class="headline-score">${h.label} · ${(h.score * 100).toFixed(0)}%</span>
+      <span class="headline-score">${h.label.toUpperCase()} · ${(h.score * 100).toFixed(0)}%</span>
     `;
     list.appendChild(row);
   });
@@ -241,7 +308,7 @@ function setBar(kind, value) {
 }
 
 /* ==========================================================================
-   Watchlist Persistence and View Logic
+   Watchlist Persistence using localStorage
    ========================================================================== */
 function getWatchlistKey() {
   return 'stocksense_watchlist_' + (username || 'default');
@@ -296,13 +363,12 @@ async function loadWatchlist() {
   emptyState.classList.add('hidden');
   document.querySelector('.watchlist-table').classList.remove('hidden');
 
-  // Load cached values or trigger fetch in list
   for (const ticker of list) {
     const row = document.createElement('tr');
     row.id = `wl-row-${ticker}`;
     row.innerHTML = `
       <td><span class="wl-ticker">${ticker}</span></td>
-      <td class="wl-label-cell"><span class="wl-label neutral">Loading...</span></td>
+      <td class="wl-label-cell"><span class="wl-label neutral">PENDING</span></td>
       <td>
         <div class="wl-bar-track">
           <div class="wl-bar-fill fill-neutral" style="width: 50%"></div>
@@ -310,18 +376,15 @@ async function loadWatchlist() {
       </td>
       <td><span class="wl-time">-</span></td>
       <td style="text-align: right;">
-        <button class="btn btn-ghost wl-btn-analyze" data-ticker="${ticker}">Analyze</button>
-        <button class="btn btn-ghost wl-btn-remove" data-ticker="${ticker}" style="color: var(--bearish);">Remove</button>
+        <button class="btn btn-ghost wl-btn-analyze" data-ticker="${ticker}">ANALYZE</button>
+        <button class="btn btn-ghost wl-btn-remove" data-ticker="${ticker}" style="color: var(--bearish);">DELETE</button>
       </td>
     `;
     tbody.appendChild(row);
-
-    // Fetch and populate (async)
     fetchWatchlistTicker(ticker);
   }
 }
 
-// Delegated events for Watchlist actions
 document.getElementById('watchlist-tbody').addEventListener('click', (e) => {
   const analyzeBtn = e.target.closest('.wl-btn-analyze');
   const removeBtn = e.target.closest('.wl-btn-remove');
@@ -350,7 +413,6 @@ async function fetchWatchlistTicker(ticker) {
       const data = await res.json();
       populateWatchlistRow(row, ticker, data);
     } else {
-      // Not cached, show fallback
       populateWatchlistRow(row, ticker, null);
     }
   } catch (err) {
@@ -364,26 +426,26 @@ function populateWatchlistRow(row, ticker, data) {
   const timeSpan = row.querySelector('.wl-time');
 
   if (!data) {
-    labelCell.innerHTML = `<span class="wl-label neutral" style="background: transparent; border: 1px dashed var(--border);">No Cache</span>`;
+    labelCell.innerHTML = `<span class="wl-label neutral" style="background: transparent; border: 1px dashed var(--border);">UNCACHED</span>`;
     barFill.className = 'wl-bar-fill fill-neutral';
     barFill.style.width = '0%';
-    timeSpan.textContent = 'Click Analyze';
+    timeSpan.textContent = 'RUN REPORT';
     return;
   }
 
   const label = data.overallLabel || 'neutral';
-  labelCell.innerHTML = `<span class="wl-label ${label}">${label}</span>`;
+  labelCell.innerHTML = `<span class="wl-label ${label}">${label.toUpperCase()}</span>`;
 
   barFill.className = `wl-bar-fill fill-${label}`;
-  const score = data.overallScore ?? 0; // -1 to 1
-  const pct = ((score + 1) / 2) * 100; // translate -1..1 to 0..100%
+  const score = data.overallScore ?? 0;
+  const pct = ((score + 1) / 2) * 100;
   barFill.style.width = `${pct}%`;
 
   timeSpan.textContent = formatTime(data.lastUpdated);
 }
 
 /* ==========================================================================
-   Ticker Comparison View Logic
+   Ticker Comparison Dashboard
    ========================================================================== */
 const compareBtn = document.getElementById('compare-btn');
 const compareT1Input = document.getElementById('compare-ticker-1');
@@ -410,41 +472,39 @@ async function runComparison() {
   const t2 = compareT2Input.value.trim().toUpperCase();
 
   if (!t1 || !t2) {
-    setCompareStatus('Please specify both stock tickers to compare.', true);
+    setCompareStatus('SYS: INCORRECT PARAMETERS. SPECIFY DUAL TICKERS.', true);
     return;
   }
 
   if (t1 === t2) {
-    setCompareStatus('Cannot compare the same stock ticker.', true);
+    setCompareStatus('SYS: REDUNDANT COMPARISON NOT COMPILING.', true);
     return;
   }
 
   compareBtn.disabled = true;
   compareResults.classList.add('hidden');
-  setCompareLoading(`Preparing comparison between ${t1} and ${t2}...`);
+  setCompareLoading(`SYS: COMPILING DUAL DATA SET FOR ${t1} VS ${t2}...`);
 
   try {
     const data1 = await fetchOrPollCompare(t1);
     const data2 = await fetchOrPollCompare(t2);
 
     renderCompareResults(t1, data1, t2, data2);
-    setCompareStatus(`Showing side-by-side comparison for ${t1} vs ${t2}`);
+    setCompareStatus(`SYS: SIDE-BY-SIDE CHART COMPILED FOR ${t1} VS ${t2}`);
   } catch (err) {
-    setCompareStatus(err.message || 'Failed to complete comparison.', true);
+    setCompareStatus(err.message || 'SYS ERROR: DUAL PIPELINE FAILED.', true);
   } finally {
     compareBtn.disabled = false;
   }
 }
 
 async function fetchOrPollCompare(ticker) {
-  // Try normal cache first
   const res = await authedFetch(`/api/stocks/sentiment/${ticker}`);
   if (res.status === 200) {
     return await res.json();
   }
 
   if (res.status === 202) {
-    // Poll for result
     for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
       await sleep(POLL_INTERVAL_MS);
       const statusRes = await authedFetch(`/api/stocks/sentiment/${ticker}/status`);
@@ -453,40 +513,38 @@ async function fetchOrPollCompare(ticker) {
         return await statusRes.json();
       }
       if (statusRes.status === 502) {
-        throw new Error(`AI engine analysis failed for ticker ${ticker}`);
+        throw new Error(`SYS ERROR: MODEL PIPELINE CRASHED FOR ${ticker}`);
       }
-      setCompareLoading(`AI engine is scraping & analyzing ${ticker}... (attempt ${attempt + 1})`);
+      setCompareLoading(`SYS: RESOLVING CACHE-MISS ON ${ticker}... (attempt ${attempt + 1})`);
     }
-    throw new Error(`Timeout waiting for AI response for ${ticker}`);
+    throw new Error(`SYS ERROR: ANALYSIS TIMEOUT EXCEEDED FOR ${ticker}`);
   }
 
-  throw new Error(`Could not connect to service for ticker ${ticker}`);
+  throw new Error(`SYS ERROR: HTTP GATEWAY EXCEPTION ON ${ticker}`);
 }
 
 function renderCompareResults(t1, d1, t2, d2) {
-  // Render Ticker 1
   document.getElementById('comp-t1-name').textContent = t1;
   const score1 = Math.max(-1, Math.min(1, d1.overallScore ?? 0));
   const angle1 = score1 * 90;
   document.getElementById('comp-needle-1').setAttribute('transform', `rotate(${angle1} 110 110)`);
   const label1 = d1.overallLabel || 'neutral';
-  document.getElementById('comp-label-1').textContent = label1;
+  document.getElementById('comp-label-1').textContent = label1.toUpperCase();
   document.getElementById('comp-label-1').className = `gauge-readout comp-readout wl-label ${label1}`;
-  document.getElementById('comp-score-1').textContent = `score: ${score1.toFixed(2)}`;
+  document.getElementById('comp-score-1').textContent = `SCORE: ${score1.toFixed(2)}`;
 
   setCompareBar(1, 'pos', d1.positive);
   setCompareBar(1, 'neg', d1.negative);
   setCompareBar(1, 'neu', d1.neutral);
 
-  // Render Ticker 2
   document.getElementById('comp-t2-name').textContent = t2;
   const score2 = Math.max(-1, Math.min(1, d2.overallScore ?? 0));
   const angle2 = score2 * 90;
   document.getElementById('comp-needle-2').setAttribute('transform', `rotate(${angle2} 110 110)`);
   const label2 = d2.overallLabel || 'neutral';
-  document.getElementById('comp-label-2').textContent = label2;
+  document.getElementById('comp-label-2').textContent = label2.toUpperCase();
   document.getElementById('comp-label-2').className = `gauge-readout comp-readout wl-label ${label2}`;
-  document.getElementById('comp-score-2').textContent = `score: ${score2.toFixed(2)}`;
+  document.getElementById('comp-score-2').textContent = `SCORE: ${score2.toFixed(2)}`;
 
   setCompareBar(2, 'pos', d2.positive);
   setCompareBar(2, 'neg', d2.negative);
@@ -500,3 +558,128 @@ function setCompareBar(tickerNum, kind, value) {
   document.getElementById(`comp-bar-${kind}-${tickerNum}`).style.width = `${v}%`;
   document.getElementById(`comp-val-${kind}-${tickerNum}`).textContent = `${v.toFixed(0)}%`;
 }
+
+/* ==========================================================================
+   Keyboard-focused Command Console Prompt & CLI
+   ========================================================================== */
+const terminalInput = document.getElementById('terminal-input');
+
+// Keypress listener to focus console instantly on `/` or backtick
+window.addEventListener('keydown', (e) => {
+  if ((e.key === '/' || e.key === '`') && document.activeElement !== terminalInput && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    terminalInput.focus();
+    terminalInput.value = '';
+  }
+});
+
+terminalInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    const rawVal = terminalInput.value.trim();
+    terminalInput.value = '';
+    if (!rawVal) return;
+
+    await executeCliCommand(rawVal);
+  }
+});
+
+async function executeCliCommand(cmdStr) {
+  // Echo or process
+  if (!cmdStr.startsWith('/')) {
+    // Treat as notepad entry/echo if not starting with slash
+    return;
+  }
+
+  const parts = cmdStr.split(' ').filter(p => p.length > 0);
+  const command = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  if (command === '/help') {
+    alert("STOCKSENSE CLI MANUAL:\n" +
+          "/analyze [TICKER]       - Runs sentiment report on ticker.\n" +
+          "/compare [T1] [T2]      - Open side-by-side comparison screen.\n" +
+          "/watchlist             - Switches terminal to Watchlist view.\n" +
+          "/dashboard             - Switches terminal to main Dashboard view.\n" +
+          "/clear                 - Resets analysis panels.\n" +
+          "Press ` (backtick) or / key at any time to focus command prompt.");
+    return;
+  }
+
+  if (command === '/analyze') {
+    if (!args[0]) {
+      alert("SYS ERROR: SPECIFY SYMBOL PROMPT, e.g. /analyze AAPL");
+      return;
+    }
+    const symbol = args[0].toUpperCase();
+    switchView('dashboard');
+    tickerInput.value = symbol;
+    runSearch();
+    return;
+  }
+
+  if (command === '/compare') {
+    if (!args[0] || !args[1]) {
+      alert("SYS ERROR: SPECIFY DUAL SYMBOLS, e.g. /compare AAPL TSLA");
+      return;
+    }
+    const t1 = args[0].toUpperCase();
+    const t2 = args[1].toUpperCase();
+    switchView('compare');
+    compareT1Input.value = t1;
+    compareT2Input.value = t2;
+    runComparison();
+    return;
+  }
+
+  if (command === '/watchlist') {
+    switchView('watchlist');
+    return;
+  }
+
+  if (command === '/dashboard') {
+    switchView('dashboard');
+    return;
+  }
+
+  if (command === '/clear') {
+    switchView('dashboard');
+    tickerInput.value = '';
+    resultSection.style.display = 'none';
+    setStatus('');
+    return;
+  }
+
+  alert(`SYS ERROR: COMMAND "${command}" NOT INITIALIZED. TYPE /help FOR MANUAL.`);
+}
+
+/* ==========================================================================
+   Indices Fluctuation Simulation (Real-time Live feeling)
+   ========================================================================== */
+function simulateIndicesFluctuation() {
+  setInterval(() => {
+    updateIndexItem('idx-nifty', 24310.20, 142.15, 0.59);
+    updateIndexItem('idx-sensex', 79480.35, 420.80, 0.53);
+    updateIndexItem('idx-nasdaq', 17895.40, -85.20, -0.47);
+    updateIndexItem('idx-sp500', 5572.10, 12.45, 0.22);
+  }, 4000);
+}
+
+function updateIndexItem(elementId, baseVal, baseChg, basePct) {
+  const item = document.getElementById(elementId);
+  if (!item) return;
+
+  const flux = (Math.random() - 0.5) * 5; // tiny random fluctuation
+  const val = baseVal + flux;
+  const chg = baseChg + flux;
+  const pct = basePct + (flux / baseVal) * 100;
+  
+  const isUp = chg >= 0;
+  
+  item.querySelector('.val').textContent = val.toLocaleString([], { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  
+  const chgSpan = item.querySelector('.chg');
+  chgSpan.className = isUp ? 'chg up' : 'chg down';
+  chgSpan.textContent = `${isUp ? '▲' : '▼'} ${isUp ? '+' : ''}${chg.toFixed(2)} (${isUp ? '+' : ''}${pct.toFixed(2)}%)`;
+}
+
+simulateIndicesFluctuation();

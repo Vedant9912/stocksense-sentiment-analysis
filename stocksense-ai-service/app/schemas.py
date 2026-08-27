@@ -6,6 +6,7 @@ class HeadlineSentiment(BaseModel):
     headline: str
     label: str          # positive | negative | neutral
     score: float         # confidence of the predicted label, 0-1
+    url: str
 
 
 class SentimentResult(BaseModel):

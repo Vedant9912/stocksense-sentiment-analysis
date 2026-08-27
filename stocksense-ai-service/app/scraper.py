@@ -22,7 +22,7 @@ USER_AGENT = (
 GOOGLE_NEWS_RSS = "https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 
 
-def fetch_headlines(ticker: str, limit: int = 15) -> List[str]:
+def fetch_headlines(ticker: str, limit: int = 15) -> List[dict]:
     """
     Fetches recent headlines mentioning `ticker` via Google News RSS.
     Falls back to an empty list (never raises) so the caller can decide
@@ -43,7 +43,15 @@ def fetch_headlines(ticker: str, limit: int = 15) -> List[str]:
     headlines = []
     for item in items:
         title = item.find("title")
-        if title and title.text:
-            headlines.append(title.text.strip())
+        link = item.find("link")
+        
+        title_text = title.text.strip() if title and title.text else ""
+        link_text = link.text.strip() if link and link.text else "#"
+        
+        if title_text:
+            headlines.append({
+                "headline": title_text,
+                "url": link_text
+            })
 
     return headlines

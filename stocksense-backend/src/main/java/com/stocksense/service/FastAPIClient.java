@@ -64,7 +64,7 @@ public class FastAPIClient {
         List<SentimentResponse.HeadlineDto> headlines = raw.getHeadlines() == null
                 ? Collections.emptyList()
                 : raw.getHeadlines().stream()
-                        .map(h -> new SentimentResponse.HeadlineDto(h.getHeadline(), h.getLabel(), h.getScore()))
+                        .map(h -> new SentimentResponse.HeadlineDto(h.getHeadline(), h.getLabel(), h.getScore(), h.getUrl()))
                         .collect(Collectors.toList());
 
         SentimentResponse response = new SentimentResponse();

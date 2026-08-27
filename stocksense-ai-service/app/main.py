@@ -48,15 +48,23 @@ def health() -> dict:
 def get_sentiment(ticker: str, limit: int = 15) -> SentimentResult:
     ticker = ticker.upper().strip()
 
-    headlines = fetch_headlines(ticker, limit=limit)
-    if not headlines:
+    headlines_data = fetch_headlines(ticker, limit=limit)
+    if not headlines_data:
         raise HTTPException(
             status_code=404,
             detail=f"No recent news headlines found for '{ticker}'.",
         )
 
+    headline_texts = [h["headline"] for h in headlines_data]
     engine = get_engine()
-    predictions = engine.predict(headlines)
+    predictions = engine.predict(headline_texts)
+
+    # Merge predicted sentiments with their corresponding URLs
+    predictions_with_url = []
+    for pred, orig in zip(predictions, headlines_data):
+        pred_copy = dict(pred)
+        pred_copy["url"] = orig["url"]
+        predictions_with_url.append(pred_copy)
 
     counts = Counter(p["label"] for p in predictions)
     total = len(predictions)
@@ -77,5 +85,5 @@ def get_sentiment(ticker: str, limit: int = 15) -> SentimentResult:
         overall_label=overall_label,
         overall_score=overall_score,
         headline_count=total,
-        headlines=[HeadlineSentiment(**p) for p in predictions],
+        headlines=[HeadlineSentiment(**p) for p in predictions_with_url],
     )

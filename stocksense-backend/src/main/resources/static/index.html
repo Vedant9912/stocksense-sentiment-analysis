@@ -3,28 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StockSense -- AI Stock Sentiment Dashboard</title>
+<title>StockSense -- Terminal Edition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+
+<!-- Global Scrolling Ticker Tape -->
+<div class="ticker-tape">
+  <div class="ticker-content">
+    <span class="ticker-item">AAPL <span class="up">▲ +1.4%</span></span>
+    <span class="ticker-item">TSLA <span class="down">▼ -2.1%</span></span>
+    <span class="ticker-item">MSFT <span class="up">▲ +0.8%</span></span>
+    <span class="ticker-item">AMZN <span class="up">▲ +2.3%</span></span>
+    <span class="ticker-item">GOOGL <span class="down">▼ -0.5%</span></span>
+    <span class="ticker-item">RELIANCE <span class="up">▲ +1.1%</span></span>
+    <span class="ticker-item">TCS <span class="down">▼ -1.3%</span></span>
+    <span class="ticker-item">INFY <span class="up">▲ +0.5%</span></span>
+    <span class="ticker-item">NVDA <span class="up">▲ +4.7%</span></span>
+    <span class="ticker-item">META <span class="down">▼ -0.9%</span></span>
+  </div>
+</div>
+
+<!-- Global Market Indices Status Bar -->
+<div class="market-indices-bar">
+  <div class="index-item" id="idx-nifty">
+    <span class="lbl">NIFTY 50</span>
+    <span class="val">24,310.20</span>
+    <span class="chg up">▲ +142.15 (+0.59%)</span>
+  </div>
+  <div class="index-item" id="idx-sensex">
+    <span class="lbl">SENSEX</span>
+    <span class="val">79,480.35</span>
+    <span class="chg up">▲ +420.80 (+0.53%)</span>
+  </div>
+  <div class="index-item" id="idx-nasdaq">
+    <span class="lbl">NASDAQ</span>
+    <span class="val">17,895.40</span>
+    <span class="chg down">▼ -85.20 (-0.47%)</span>
+  </div>
+  <div class="index-item" id="idx-sp500">
+    <span class="lbl">S&P 500</span>
+    <span class="val">5,572.10</span>
+    <span class="chg up">▲ +12.45 (+0.22%)</span>
+  </div>
+</div>
 
 <div class="app-container">
   <!-- Sidebar Navigation -->
   <div class="sidebar">
     <div class="brand">
-      <span class="dot"></span> StockSense
+      <span class="dot"></span> STOCKSENSE.SYS
     </div>
     <nav class="nav-links">
       <a href="#" class="nav-link active" data-view="dashboard">
-        <span class="icon">🔍</span> Dashboard
+        <span class="icon">🔍</span> DASHBOARD
       </a>
       <a href="#" class="nav-link" data-view="watchlist">
-        <span class="icon">⭐</span> Watchlist
+        <span class="icon">⭐</span> WATCHLIST
       </a>
       <a href="#" class="nav-link" data-view="compare">
-        <span class="icon">📊</span> Compare Tickers
+        <span class="icon">📊</span> COMPARE
       </a>
     </nav>
     <div class="sidebar-footer">
@@ -32,7 +72,7 @@
         <span class="icon">👤</span>
         <span id="username-display"></span>
       </div>
-      <button class="btn btn-ghost" id="logout-btn">Log out</button>
+      <button class="btn btn-ghost" id="logout-btn">DISCONNECT</button>
     </div>
   </div>
 
@@ -42,11 +82,11 @@
     <!-- View: Dashboard -->
     <div id="view-dashboard" class="view-pane">
       <div class="hero">
-        <h1>What does the news think?</h1>
-        <p class="sub">Type a ticker. FinBERT reads the latest headlines and tells you the market sentiment.</p>
+        <h1>STOCKNEWS SENTIMENT ENGINE</h1>
+        <p class="sub">FinBERT classified news mood analysis with live market technical charts.</p>
         <div class="search-row">
-          <input type="text" id="ticker-input" placeholder="e.g. RELIANCE, TCS, AAPL, TSLA" autocomplete="off">
-          <button class="btn btn-primary" id="search-btn">Analyze</button>
+          <input type="text" id="ticker-input" placeholder="ENTER SYMBOL (e.g. AAPL, TSLA, TCS, RELIANCE)" autocomplete="off">
+          <button class="btn btn-primary" id="search-btn">RUN ANALYSYS</button>
         </div>
         <div class="chip-row">
           <span class="chip" data-ticker="RELIANCE">RELIANCE</span>
@@ -59,6 +99,16 @@
       </div>
 
       <div id="result-section">
+        <!-- Live TradingView Chart Widget Card -->
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3>LIVE TECHNICAL CHART (PRELOADED: RSI, MA, MACD, BB)</h3>
+          </div>
+          <div id="tradingview-chart-container">
+            <div id="tradingview-chart"></div>
+          </div>
+        </div>
+
         <div class="result-header">
           <div class="ticker-box">
             <span class="ticker-name" id="result-ticker">--</span>
@@ -71,19 +121,19 @@
 
         <div class="panels">
           <div class="card gauge-card">
-            <div class="gauge-label-top">Aggregate mood</div>
+            <div class="gauge-label-top">AGGREGATE MOOD</div>
             <div class="gauge-wrap">
               <svg viewBox="0 0 220 130" width="220" height="130">
                 <defs>
                   <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ef4444"/>
-                    <stop offset="50%" stop-color="#eab308"/>
-                    <stop offset="100%" stop-color="#22c55e"/>
+                    <stop offset="0%" stop-color="#ff3b30"/>
+                    <stop offset="50%" stop-color="#d29922"/>
+                    <stop offset="100%" stop-color="#00ff66"/>
                   </linearGradient>
                 </defs>
                 <path d="M 10 110 A 100 100 0 0 1 210 110" fill="none" stroke="url(#arcGradient)" stroke-width="14" stroke-linecap="round"/>
-                <line id="gauge-needle" x1="110" y1="110" x2="110" y2="30" stroke="#e7ecf3" stroke-width="4" stroke-linecap="round"/>
-                <circle cx="110" cy="110" r="7" fill="#e7ecf3"/>
+                <line id="gauge-needle" x1="110" y1="110" x2="110" y2="30" stroke="#00d2ff" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="110" cy="110" r="7" fill="#00d2ff"/>
               </svg>
             </div>
             <div class="gauge-readout" id="gauge-label">--</div>
@@ -91,17 +141,17 @@
 
             <div class="sentiment-bars">
               <div class="bar-row">
-                <span class="bar-label">Bullish</span>
+                <span class="bar-label">BULLISH</span>
                 <div class="bar-track"><div class="bar-fill fill-bullish" id="bar-positive" style="width:0%"></div></div>
                 <span class="bar-val" id="val-positive">0%</span>
               </div>
               <div class="bar-row">
-                <span class="bar-label">Bearish</span>
+                <span class="bar-label">BEARISH</span>
                 <div class="bar-track"><div class="bar-fill fill-bearish" id="bar-negative" style="width:0%"></div></div>
                 <span class="bar-val" id="val-negative">0%</span>
               </div>
               <div class="bar-row">
-                <span class="bar-label">Neutral</span>
+                <span class="bar-label">NEUTRAL</span>
                 <div class="bar-track"><div class="bar-fill fill-neutral" id="bar-neutral" style="width:0%"></div></div>
                 <span class="bar-val" id="val-neutral">0%</span>
               </div>
@@ -109,7 +159,7 @@
           </div>
 
           <div class="card headlines-card">
-            <h3>Headlines analyzed</h3>
+            <h3>HEADLINES ANALYZED (CLICK TO VERIFY ORIGIN)</h3>
             <div class="headline-list" id="headline-list"></div>
           </div>
         </div>
@@ -119,7 +169,7 @@
     <!-- View: Watchlist -->
     <div id="view-watchlist" class="view-pane hidden">
       <div class="view-header">
-        <h2>My Watchlist</h2>
+        <h2>MY WATCHLIST</h2>
         <p class="sub">Track sentiment trends for your favorite stocks at a glance.</p>
       </div>
 
@@ -149,7 +199,7 @@
     <!-- View: Compare -->
     <div id="view-compare" class="view-pane hidden">
       <div class="view-header">
-        <h2>Compare Tickers</h2>
+        <h2>COMPARE TICKERS</h2>
         <p class="sub">Analyze the sentiment difference between two tickers side-by-side.</p>
       </div>
 
@@ -159,7 +209,7 @@
           <span class="vs">VS</span>
           <input type="text" id="compare-ticker-2" placeholder="e.g. TSLA" autocomplete="off">
         </div>
-        <button class="btn btn-primary" id="compare-btn">Compare Sentiment</button>
+        <button class="btn btn-primary" id="compare-btn">COMPARE SENTIMENT</button>
       </div>
       <div id="compare-status-line"></div>
 
@@ -172,31 +222,31 @@
               <svg viewBox="0 0 220 130" width="160" height="95">
                 <defs>
                   <linearGradient id="arcGradientComp1" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ef4444"/>
-                    <stop offset="50%" stop-color="#eab308"/>
-                    <stop offset="100%" stop-color="#22c55e"/>
+                    <stop offset="0%" stop-color="#ff3b30"/>
+                    <stop offset="50%" stop-color="#d29922"/>
+                    <stop offset="100%" stop-color="#00ff66"/>
                   </linearGradient>
                 </defs>
                 <path d="M 10 110 A 100 100 0 0 1 210 110" fill="none" stroke="url(#arcGradientComp1)" stroke-width="14" stroke-linecap="round"/>
-                <line id="comp-needle-1" x1="110" y1="110" x2="110" y2="30" stroke="#e7ecf3" stroke-width="4" stroke-linecap="round"/>
-                <circle cx="110" cy="110" r="7" fill="#e7ecf3"/>
+                <line id="comp-needle-1" x1="110" y1="110" x2="110" y2="30" stroke="#00d2ff" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="110" cy="110" r="7" fill="#00d2ff"/>
               </svg>
             </div>
             <div class="gauge-readout comp-readout" id="comp-label-1">--</div>
             <div class="gauge-score comp-score" id="comp-score-1">score: --</div>
             <div class="sentiment-bars comp-bars">
               <div class="bar-row">
-                <span class="bar-label">Bullish</span>
+                <span class="bar-label">BULLISH</span>
                 <div class="bar-track"><div class="bar-fill fill-bullish" id="comp-bar-pos-1" style="width: 0%"></div></div>
                 <span class="bar-val" id="comp-val-pos-1">0%</span>
               </div>
               <div class="bar-row">
-                <span class="bar-label">Bearish</span>
+                <span class="bar-label">BEARISH</span>
                 <div class="bar-track"><div class="bar-fill fill-bearish" id="comp-bar-neg-1" style="width: 0%"></div></div>
                 <span class="bar-val" id="comp-val-neg-1">0%</span>
               </div>
               <div class="bar-row">
-                <span class="bar-label">Neutral</span>
+                <span class="bar-label">NEUTRAL</span>
                 <div class="bar-track"><div class="bar-fill fill-neutral" id="comp-bar-neu-1" style="width: 0%"></div></div>
                 <span class="bar-val" id="comp-val-neu-1">0%</span>
               </div>
@@ -210,31 +260,31 @@
               <svg viewBox="0 0 220 130" width="160" height="95">
                 <defs>
                   <linearGradient id="arcGradientComp2" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#ef4444"/>
-                    <stop offset="50%" stop-color="#eab308"/>
-                    <stop offset="100%" stop-color="#22c55e"/>
+                    <stop offset="0%" stop-color="#ff3b30"/>
+                    <stop offset="50%" stop-color="#d29922"/>
+                    <stop offset="100%" stop-color="#00ff66"/>
                   </linearGradient>
                 </defs>
                 <path d="M 10 110 A 100 100 0 0 1 210 110" fill="none" stroke="url(#arcGradientComp2)" stroke-width="14" stroke-linecap="round"/>
-                <line id="comp-needle-2" x1="110" y1="110" x2="110" y2="30" stroke="#e7ecf3" stroke-width="4" stroke-linecap="round"/>
-                <circle cx="110" cy="110" r="7" fill="#e7ecf3"/>
+                <line id="comp-needle-2" x1="110" y1="110" x2="110" y2="30" stroke="#00d2ff" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="110" cy="110" r="7" fill="#00d2ff"/>
               </svg>
             </div>
             <div class="gauge-readout comp-readout" id="comp-label-2">--</div>
             <div class="gauge-score comp-score" id="comp-score-2">score: --</div>
             <div class="sentiment-bars comp-bars">
               <div class="bar-row">
-                <span class="bar-label">Bullish</span>
+                <span class="bar-label">BULLISH</span>
                 <div class="bar-track"><div class="bar-fill fill-bullish" id="comp-bar-pos-2" style="width: 0%"></div></div>
                 <span class="bar-val" id="comp-val-pos-2">0%</span>
               </div>
               <div class="bar-row">
-                <span class="bar-label">Bearish</span>
+                <span class="bar-label">BEARISH</span>
                 <div class="bar-track"><div class="bar-fill fill-bearish" id="comp-bar-neg-2" style="width: 0%"></div></div>
                 <span class="bar-val" id="comp-val-neg-2">0%</span>
               </div>
               <div class="bar-row">
-                <span class="bar-label">Neutral</span>
+                <span class="bar-label">NEUTRAL</span>
                 <div class="bar-track"><div class="bar-fill fill-neutral" id="comp-bar-neu-2" style="width: 0%"></div></div>
                 <span class="bar-val" id="comp-val-neu-2">0%</span>
               </div>
@@ -245,6 +295,12 @@
     </div>
 
   </div>
+</div>
+
+<!-- Interactive Terminal Console fixed at bottom -->
+<div class="terminal-console-bar">
+  <div class="console-prompt">SYS@STOCKSENSE&gt;</div>
+  <input type="text" id="terminal-input" placeholder="Enter CLI command (/analyze TICKER, /compare TICKER1 TICKER2, /watchlist, /help) or type to write notes..." autocomplete="off">
 </div>
 
 <script src="/js/app.js"></script>

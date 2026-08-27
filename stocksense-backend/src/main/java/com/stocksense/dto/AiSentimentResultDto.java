@@ -103,6 +103,7 @@ public class AiSentimentResultDto {
         private String headline;
         private String label;
         private Double score;
+        private String url;
 
         public HeadlineDto() {
         }
@@ -129,6 +130,14 @@ public class AiSentimentResultDto {
 
         public void setScore(Double score) {
             this.score = score;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
         }
     }
 }
