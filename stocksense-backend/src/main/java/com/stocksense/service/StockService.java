@@ -137,7 +137,7 @@ public class StockService {
         });
     }
 
-    public AnalysisRefreshStatus pollAnalysisStatus(String symbol, String query) {
+    public AnalysisRefreshStatus pollAnalysisStatus(Long userId, String symbol, String query) {
         String normalizedSym = symbol.toUpperCase().strip();
         String key = normalizedSym + ":" + query.trim().toLowerCase().hashCode();
         
@@ -145,8 +145,8 @@ public class StockService {
 
         if (future == null) {
             // Not pending -- check database history for the fresh data
-            return analysisHistoryRepository.findByUserIdOrderByCreatedAtDesc(0L).stream() // 0L represents fallback checking or fetch the latest record regardless
-                    .filter(h -> h.getSymbol().equalsIgnoreCase(normalizedSym) && h.getQuery().equalsIgnoreCase(query.trim()))
+            return analysisHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                    .filter(h -> h.getSymbol().equalsIgnoreCase(normalizedSym) && h.getQuery().trim().equalsIgnoreCase(query.trim()))
                     .findFirst()
                     .map(h -> {
                         try {

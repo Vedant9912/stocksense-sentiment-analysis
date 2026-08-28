@@ -58,7 +58,11 @@ public class StockController {
 
     @GetMapping("/analyze/status")
     public ResponseEntity<?> getAnalysisStatus(@RequestParam String symbol, @RequestParam String query) {
-        StockService.AnalysisRefreshStatus status = stockService.pollAnalysisStatus(symbol, query);
+        String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        StockService.AnalysisRefreshStatus status = stockService.pollAnalysisStatus(user.getId(), symbol, query);
 
         return switch (status.status) {
             case "DONE" -> ResponseEntity.ok(status.data);
