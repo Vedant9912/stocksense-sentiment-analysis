@@ -8,6 +8,9 @@ only public-facing entry point.
 
 Run with:  uvicorn app.main:app --host 0.0.0.0 --port 8000
 """
+from dotenv import load_dotenv
+load_dotenv()
+
 from collections import Counter
 
 from fastapi import FastAPI, HTTPException

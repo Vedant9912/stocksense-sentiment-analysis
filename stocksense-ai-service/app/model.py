@@ -20,12 +20,8 @@ class FinBertEngine:
     def __init__(self) -> None:
         self.hf_token = os.getenv("HF_TOKEN")
         if not self.hf_token:
-            print("HF_TOKEN not found. Initializing local PyTorch model (requires ~1GB RAM)...")
-            from transformers import AutoTokenizer, AutoModelForSequenceClassification
-            import torch
-            self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-            self.model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
-            self.model.eval()
+            print("WARNING: HF_TOKEN environment variable not found. Sentiment Tool will fall back to neutral predictions.")
+            print("To enable active FinBERT predictions via Hugging Face Serverless Inference, please add HF_TOKEN to your environment.")
         else:
             print("HF_TOKEN found. Initializing serverless Hugging Face Inference API client...")
 
@@ -37,32 +33,14 @@ class FinBertEngine:
         if self.hf_token:
             return self._predict_via_hf_api(headlines)
         
-        return self._predict_locally(headlines)
-
-    def _predict_locally(self, headlines: List[str]) -> List[dict]:
-        import torch
-        
-        inputs = self.tokenizer(
-            headlines,
-            padding=True,
-            truncation=True,
-            max_length=64,
-            return_tensors="pt",
-        )
-        with torch.no_grad():
-            logits = self.model(**inputs).logits
-            probs = torch.softmax(logits, dim=-1)
-
+        # If no HF token, degrade gracefully to neutral fallback without loading PyTorch locally
         results = []
-        for headline, prob in zip(headlines, probs):
-            idx = int(torch.argmax(prob).item())
-            results.append(
-                {
-                    "headline": headline,
-                    "label": LABELS[idx],
-                    "score": round(float(prob[idx]), 4),
-                }
-            )
+        for headline in headlines:
+            results.append({
+                "headline": headline,
+                "label": "neutral",
+                "score": 1.0
+            })
         return results
 
     def _predict_via_hf_api(self, headlines: List[str]) -> List[dict]:
