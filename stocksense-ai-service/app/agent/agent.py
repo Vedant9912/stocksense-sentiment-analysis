@@ -237,7 +237,9 @@ The JSON schema MUST exactly follow:
         # Call the LLM (or fallback deterministically)
         structured_json = self.llm_client.generate_structured_response(
             prompt=prompt,
-            schema_fields=["symbol", "summary", "market", "sentiment", "technical", "news", "key_drivers", "confidence"]
+            schema_fields=["symbol", "summary", "market", "sentiment", "technical", "news", "key_drivers", "confidence"],
+            symbol=state.symbol,
+            tool_results=state.tool_results
         )
 
         # Force map/inject the raw tool outputs directly into the final JSON structure 

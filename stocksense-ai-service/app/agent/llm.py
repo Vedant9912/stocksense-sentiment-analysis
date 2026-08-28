@@ -21,14 +21,14 @@ class LLMClient:
                 
         print(f"LLMClient initialized: Provider={self.provider or 'MOCK-FALLBACK'}")
 
-    def generate_structured_response(self, prompt: str, schema_fields: List[str]) -> Dict[str, Any]:
+    def generate_structured_response(self, prompt: str, schema_fields: List[str], symbol: str = "UNKNOWN", tool_results: dict = None) -> Dict[str, Any]:
         """
         Sends the prompt to the configured LLM provider and requests a structured JSON response.
         If the provider fails or key is missing, falls back to a clean mock parser.
         """
         if not self.api_key:
             print("LLMClient: No LLM_API_KEY found. Falling back to deterministic analysis synthesis.")
-            return self._fallback_synthesis(prompt)
+            return self._fallback_synthesis(prompt, symbol, tool_results)
 
         try:
             if self.provider == "gemini":
@@ -38,7 +38,7 @@ class LLMClient:
         except Exception as e:
             print(f"LLMClient: Provider call failed ({e}). Falling back to deterministic synthesis.")
             
-        return self._fallback_synthesis(prompt)
+        return self._fallback_synthesis(prompt, symbol, tool_results)
 
     def _call_gemini(self, prompt: str) -> Dict[str, Any]:
         import google.generativeai as genai
@@ -51,7 +51,6 @@ class LLMClient:
         )
         
         response = model.generate_content(prompt)
-        # Parse the JSON string
         return json.loads(response.text)
 
     def _call_openai(self, prompt: str) -> Dict[str, Any]:
@@ -73,48 +72,31 @@ class LLMClient:
         content = response.choices[0].message.content
         return json.loads(content)
 
-    def _fallback_synthesis(self, prompt: str) -> Dict[str, Any]:
+    def _fallback_synthesis(self, prompt: str, symbol: str = "UNKNOWN", tool_results: dict = None) -> Dict[str, Any]:
         """
         Fallback parser that generates a standard, high-quality, structured response
-        by parsing the tool inputs out of the prompt (since the prompt contains all raw tool outputs).
+        directly using the raw tool results.
         """
-        # Let's extract values using simple string parsing/searching from the prompt
-        symbol = "UNKNOWN"
-        price = 0.0
-        change = 0.0
-        change_pct = 0.0
-        rsi = 50.0
-        trend = "neutral"
-        label = "neutral"
-        score = 0.0
+        if tool_results is None:
+            tool_results = {}
+            
+        market_res = tool_results.get("MarketDataTool", {})
+        technical_res = tool_results.get("TechnicalAnalysisTool", {})
+        sentiment_res = tool_results.get("SentimentTool", {})
         
-        # Extract Ticker
-        for line in prompt.split("\n"):
-            if "Ticker Symbol:" in line or "Symbol:" in line:
-                symbol = line.split(":")[-1].strip().upper()
-            if "Current Price:" in line:
-                try: price = float(line.split(":")[-1].replace("$", "").strip())
-                except: pass
-            if "Price Change:" in line:
-                try: change = float(line.split(":")[-1].strip())
-                except: pass
-            if "Percentage Change:" in line:
-                try: change_pct = float(line.split(":")[-1].replace("%", "").strip())
-                except: pass
-            if "RSI (14):" in line:
-                try: rsi = float(line.split(":")[-1].strip())
-                except: pass
-            if "Trend:" in line:
-                trend = line.split(":")[-1].strip().lower()
-            if "Overall Label:" in line:
-                label = line.split(":")[-1].strip().lower()
-            if "Overall Score:" in line:
-                try: score = float(line.split(":")[-1].strip())
-                except: pass
-
+        price = market_res.get("price", 0.0)
+        change = market_res.get("change", 0.0)
+        change_pct = market_res.get("change_percent", 0.0)
+        
+        rsi = technical_res.get("rsi_14", 50.0)
+        trend = technical_res.get("trend", "neutral")
+        
+        label = sentiment_res.get("aggregate", {}).get("label", "neutral")
+        score = sentiment_res.get("aggregate", {}).get("score", 0.0)
+        
         # Compile static narrative drivers
         drivers = [
-            f"Market price for {symbol} closed at {price} indicating a change of {change_pct}%.",
+            f"Market price for {symbol} closed at ${price} indicating a change of {change_pct}%.",
             f"Technical indicators show a {trend} trend with RSI at {rsi}."
         ]
         if label == "positive":
@@ -125,7 +107,7 @@ class LLMClient:
             drivers.append("Financial news headlines indicate a neutral or mixed sentiment profile.")
 
         summary = (
-            f"StockSense AI deterministic analysis for {symbol}: The stock is trading at {price} "
+            f"StockSense AI deterministic analysis for {symbol}: The stock is trading at ${price} "
             f"representing a {change_pct}% change. Technical trend is currently {trend} with a relative "
             f"strength index (RSI 14) of {rsi}. News sentiment classified via FinBERT is {label.upper()}."
         )
