@@ -2,11 +2,14 @@ package com.stocksense.service;
 
 import com.stocksense.dto.AiSentimentResultDto;
 import com.stocksense.dto.SentimentResponse;
+import com.stocksense.dto.AnalysisRequest;
+import com.stocksense.dto.AnalysisResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -56,6 +59,31 @@ public class FastAPIClient {
         return toSentimentResponse(raw);
     }
 
+    /**
+     * Calls POST /api/ai/analyze on the FastAPI worker asynchronously
+     * to execute the stateful AI research agent.
+     */
+    public CompletableFuture<AnalysisResponse> fetchAnalysisAsync(String symbol, String query) {
+        return CompletableFuture.supplyAsync(() -> fetchAnalysisBlocking(symbol, query), aiTaskExecutor);
+    }
+
+    private AnalysisResponse fetchAnalysisBlocking(String symbol, String query) {
+        AnalysisRequest body = new AnalysisRequest(symbol, query);
+        
+        return webClient.post()
+                .uri("/api/ai/analyze")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(AnalysisResponse.class)
+                .timeout(Duration.ofSeconds(45)) // Longer timeout since LLM synthesis can take time
+                .doOnError(err -> log.error("AI agent analysis failed for {}: {}", symbol, err.getMessage()))
+                .onErrorResume(err -> {
+                    log.error("AI Agent connection error for {}. Graceful degradation fallback.", symbol);
+                    return Mono.just(createFallbackResponse(symbol, query));
+                })
+                .block();
+    }
+
     private SentimentResponse toSentimentResponse(AiSentimentResultDto raw) {
         if (raw == null) {
             throw new IllegalStateException("AI engine returned an empty response");
@@ -76,6 +104,34 @@ public class FastAPIClient {
         response.setOverallScore(raw.getOverallScore());
         response.setHeadlineCount(raw.getHeadlineCount());
         response.setHeadlines(headlines);
+        return response;
+    }
+
+    private AnalysisResponse createFallbackResponse(String symbol, String query) {
+        AnalysisResponse response = new AnalysisResponse();
+        response.setSymbol(symbol);
+        response.setSummary("AI engine currently busy or unavailable. Displaying deterministic fallback profile.");
+        
+        AnalysisResponse.MarketDto m = new AnalysisResponse.MarketDto();
+        m.setPrice(0.0);
+        m.setChange(0.0);
+        m.setChangePercent(0.0);
+        response.setMarket(m);
+        
+        AnalysisResponse.SentimentDto s = new AnalysisResponse.SentimentDto();
+        s.setLabel("neutral");
+        s.setScore(0.0);
+        response.setSentiment(s);
+        
+        AnalysisResponse.TechnicalDto t = new AnalysisResponse.TechnicalDto();
+        t.setRsi(50.0);
+        t.setTrend("neutral");
+        response.setTechnical(t);
+        
+        response.setNews(Collections.emptyList());
+        response.setKeyDrivers(List.of("Service connectivity error occurred. Data fetching offline."));
+        response.setConfidence(0.0);
+        response.setDisclaimer("Connection to FastAPI AI Orchestrator timed out. Please check logs.");
         return response;
     }
 }

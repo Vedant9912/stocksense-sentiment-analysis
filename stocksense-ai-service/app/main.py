@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.model import get_engine
 from app.scraper import fetch_headlines
-from app.schemas import SentimentResult, HeadlineSentiment
+from app.schemas import SentimentResult, HeadlineSentiment, AgentRequest, StructuredAnalysisResponse
+from app.agent.agent import StatefulAgent
 
 app = FastAPI(
     title="StockSense AI Engine",
@@ -87,3 +88,25 @@ def get_sentiment(ticker: str, limit: int = 15) -> SentimentResult:
         headline_count=total,
         headlines=[HeadlineSentiment(**p) for p in predictions_with_url],
     )
+
+@app.post("/api/ai/analyze", response_model=StructuredAnalysisResponse)
+def analyze_stock(request: AgentRequest) -> StructuredAnalysisResponse:
+    symbol = request.symbol.strip().upper()
+    query = request.query.strip()
+    
+    if not symbol:
+        raise HTTPException(status_code=400, detail="Symbol cannot be empty.")
+    if not query:
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+        
+    try:
+        agent = StatefulAgent()
+        analysis = agent.execute(symbol, query)
+        
+        if not analysis:
+            raise HTTPException(status_code=500, detail="Agent failed to compile structured response.")
+            
+        return StructuredAnalysisResponse(**analysis)
+    except Exception as e:
+        print(f"FastAPI /api/ai/analyze error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

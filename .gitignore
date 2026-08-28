@@ -38,3 +38,7 @@ Thumbs.db
 db.properties
 .DS_Store
 *.log
+
+# Local Deployment Files
+DEPLOYMENT.md
+DEPLOY_RENDER.md
