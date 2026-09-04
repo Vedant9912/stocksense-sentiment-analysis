@@ -95,12 +95,18 @@ public class AnalysisResponse {
 
     // --- Inner DTOs ---
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class MarketDto {
         private Double price;
         private Double change;
 
         @JsonProperty("change_percent")
         private Double changePercent;
+
+        private String currency;
+
+        @JsonProperty("resolved_symbol")
+        private String resolvedSymbol;
 
         public MarketDto() {
         }
@@ -128,6 +134,22 @@ public class AnalysisResponse {
         public void setChangePercent(Double changePercent) {
             this.changePercent = changePercent;
         }
+
+        public String getCurrency() {
+            return currency;
+        }
+
+        public void setCurrency(String currency) {
+            this.currency = currency;
+        }
+
+        public String getResolvedSymbol() {
+            return resolvedSymbol;
+        }
+
+        public void setResolvedSymbol(String resolvedSymbol) {
+            this.resolvedSymbol = resolvedSymbol;
+        }
     }
 
     public static class SentimentDto {
@@ -154,9 +176,19 @@ public class AnalysisResponse {
         }
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class TechnicalDto {
         private Double rsi;
         private String trend;
+
+        @JsonProperty("sma_20")
+        private Double sma20;
+
+        @JsonProperty("sma_50")
+        private Double sma50;
+
+        @JsonProperty("ema_20")
+        private Double ema20;
 
         public TechnicalDto() {
         }
@@ -176,8 +208,33 @@ public class AnalysisResponse {
         public void setTrend(String trend) {
             this.trend = trend;
         }
+
+        public Double getSma20() {
+            return sma20;
+        }
+
+        public void setSma20(Double sma20) {
+            this.sma20 = sma20;
+        }
+
+        public Double getSma50() {
+            return sma50;
+        }
+
+        public void setSma50(Double sma50) {
+            this.sma50 = sma50;
+        }
+
+        public Double getEma20() {
+            return ema20;
+        }
+
+        public void setEma20(Double ema20) {
+            this.ema20 = ema20;
+        }
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class NewsDto {
         private String title;
         private String source;
@@ -186,6 +243,8 @@ public class AnalysisResponse {
         private String publishedAt;
 
         private String url;
+        private String label;
+        private Double score;
 
         public NewsDto() {
         }
@@ -220,6 +279,22 @@ public class AnalysisResponse {
 
         public void setUrl(String url) {
             this.url = url;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public void setLabel(String label) {
+            this.label = label;
+        }
+
+        public Double getScore() {
+            return score;
+        }
+
+        public void setScore(Double score) {
+            this.score = score;
         }
     }
 }

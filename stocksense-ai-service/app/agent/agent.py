@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 
 # Import specialized tools
-from app.tools.market_data import MarketDataTool
+from app.tools.market_data import MarketDataTool, resolve_ticker
 from app.tools.news import NewsTool
 from app.tools.technical_analysis import TechnicalAnalysisTool
 from app.tools.sentiment import SentimentTool
@@ -36,10 +36,13 @@ class StatefulAgent:
         """
         Executes the stateful agent workflow end-to-end.
         """
+        # Resolve company name to canonical ticker symbol if needed
+        resolved = resolve_ticker(symbol)
+
         # START: Initialize state
         state = AgentState(
             query=query,
-            symbol=symbol.upper().strip(),
+            symbol=resolved,
             tool_call_count=0
         )
 
@@ -93,6 +96,8 @@ class StatefulAgent:
             selected.append("MarketDataTool")
 
         state.selected_tools = [t for t in selected if t in ALLOWED_TOOLS]
+        if not state.selected_tools:
+            state.selected_tools = list(ALLOWED_TOOLS)
         print(f"StatefulAgent: Selected tools {state.selected_tools} for query '{state.query}'")
 
     def _execute_tools(self, state: AgentState) -> None:
@@ -130,13 +135,19 @@ class StatefulAgent:
                 news_data = state.tool_results.get("NewsTool", {})
                 articles = news_data.get("news", [])
                 
-                # Analyze each headline sentiment
+                # Analyze all headlines in batch
+                titles = [a.get("title", "") for a in articles]
+                batch_preds = SentimentTool.analyze_batch(titles) if titles else []
+                
                 headlines_sentiment = []
-                for article in articles:
-                    sent = SentimentTool.analyze(article["title"])
-                    sent["url"] = article["url"]
-                    sent["headline"] = article["title"]
-                    headlines_sentiment.append(sent)
+                for article, pred in zip(articles, batch_preds):
+                    sent_item = {
+                        "headline": article.get("title", ""),
+                        "label": pred.get("label", "neutral"),
+                        "score": pred.get("score", 1.0),
+                        "url": article.get("url", "#")
+                    }
+                    headlines_sentiment.append(sent_item)
                 
                 # Aggregate results
                 agg = SentimentTool.aggregate_sentiment(headlines_sentiment)
@@ -245,10 +256,13 @@ The JSON schema MUST exactly follow:
         # Force map/inject the raw tool outputs directly into the final JSON structure 
         # to guarantee 0% LLM hallucinations of financial data!
         structured_json["symbol"] = state.symbol
+        is_indian = str(market_res.get("resolved_symbol", "")).endswith((".NS", ".BO"))
         structured_json["market"] = {
             "price": market_res.get("price", 0.0),
             "change": market_res.get("change", 0.0),
-            "change_percent": market_res.get("change_percent", 0.0)
+            "change_percent": market_res.get("change_percent", 0.0),
+            "currency": "INR" if is_indian else "USD",
+            "resolved_symbol": market_res.get("resolved_symbol", state.symbol)
         }
         structured_json["sentiment"] = {
             "label": sentiment_res.get("aggregate", {}).get("label", "neutral"),
@@ -256,20 +270,30 @@ The JSON schema MUST exactly follow:
         }
         structured_json["technical"] = {
             "rsi": technical_res.get("rsi_14", 50.0),
-            "trend": technical_res.get("trend", "neutral")
+            "trend": technical_res.get("trend", "neutral"),
+            "sma_20": technical_res.get("sma_20", 0.0),
+            "sma_50": technical_res.get("sma_50", 0.0),
+            "ema_20": technical_res.get("ema_20", 0.0)
         }
         
-        # Pull original clean scraped articles directly from NewsTool
+        # Pull original clean scraped articles directly from NewsTool paired with sentiments
         scraped_articles = news_res.get("news", [])
-        structured_json["news"] = [
-            {
-                "title": a["title"],
-                "source": a["source"],
-                "published_at": a["published_at"],
-                "url": a["url"]
-            }
-            for a in scraped_articles
-        ]
+        sentiment_breakdown = sentiment_res.get("breakdown", [])
+        sent_by_title = {item.get("headline"): item for item in sentiment_breakdown}
+
+        structured_news = []
+        for a in scraped_articles:
+            title = a.get("title", "")
+            sent_info = sent_by_title.get(title, {})
+            structured_news.append({
+                "title": title,
+                "source": a.get("source", "Unknown"),
+                "published_at": a.get("published_at", ""),
+                "url": a.get("url", "#"),
+                "label": sent_info.get("label", "neutral"),
+                "score": sent_info.get("score", 1.0)
+            })
+        structured_json["news"] = structured_news
 
         # Validate structured output against Pydantic schema
         try:

@@ -93,11 +93,17 @@ class LLMClient:
         
         label = sentiment_res.get("aggregate", {}).get("label", "neutral")
         score = sentiment_res.get("aggregate", {}).get("score", 0.0)
+        sma_20 = technical_res.get("sma_20", 0.0)
+        sma_50 = technical_res.get("sma_50", 0.0)
+        ema_20 = technical_res.get("ema_20", 0.0)
         
-        # Compile static narrative drivers
+        is_indian = str(market_res.get("resolved_symbol", "")).endswith((".NS", ".BO"))
+        currency_sym = "₹" if is_indian else "$"
+
+        # Compile narrative drivers
         drivers = [
-            f"Market price for {symbol} closed at ${price} indicating a change of {change_pct}%.",
-            f"Technical indicators show a {trend} trend with RSI at {rsi}."
+            f"Market price for {symbol} closed at {currency_sym}{price} ({change_pct:+0.2f}%).",
+            f"Technical posture is {trend.upper()} with RSI at {rsi}, SMA-20 at {currency_sym}{sma_20}, and SMA-50 at {currency_sym}{sma_50}."
         ]
         if label == "positive":
             drivers.append("FinBERT sentiment analysis indicates news headlines are generally bullish.")
@@ -107,9 +113,10 @@ class LLMClient:
             drivers.append("Financial news headlines indicate a neutral or mixed sentiment profile.")
 
         summary = (
-            f"StockSense AI deterministic analysis for {symbol}: The stock is trading at ${price} "
-            f"representing a {change_pct}% change. Technical trend is currently {trend} with a relative "
-            f"strength index (RSI 14) of {rsi}. News sentiment classified via FinBERT is {label.upper()}."
+            f"StockSense AI analysis for {symbol}: The stock is trading at {currency_sym}{price} "
+            f"({change_pct:+0.2f}%). Technical momentum is {trend.upper()} with an RSI (14) of {rsi}, "
+            f"SMA (20) at {currency_sym}{sma_20}, and SMA (50) at {currency_sym}{sma_50}. "
+            f"News sentiment classified via FinBERT is {label.upper()} (score: {score:+0.2f})."
         )
 
         return {
@@ -126,7 +133,10 @@ class LLMClient:
             },
             "technical": {
                 "rsi": rsi,
-                "trend": trend
+                "trend": trend,
+                "sma_20": sma_20,
+                "sma_50": sma_50,
+                "ema_20": ema_20
             },
             "news": [],  # Filled in by the agent executor from raw news tool
             "key_drivers": drivers,

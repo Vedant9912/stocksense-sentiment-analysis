@@ -88,7 +88,7 @@
         <h1>STOCKNEWS SENTIMENT ENGINE</h1>
         <p class="sub">FinBERT classified news mood analysis with live market technical charts.</p>
         <div class="search-row">
-          <input type="text" id="ticker-input" placeholder="ENTER SYMBOL (e.g. AAPL, TSLA, TCS, RELIANCE)" autocomplete="off">
+          <input type="text" id="ticker-input" placeholder="ENTER TICKER OR COMPANY NAME (e.g. Apple, Tesla, Tata Motors, Reliance, TCS)" autocomplete="off">
           <button class="btn btn-primary" id="search-btn">RUN ANALYSYS</button>
         </div>
         <div class="chip-row">
@@ -145,6 +145,14 @@
                   <tr>
                     <td style="padding: 4px 0;">Technical Trend:</td>
                     <td style="text-align: right; font-weight: bold;" id="synth-trend">--</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 4px 0;">SMA (20):</td>
+                    <td style="text-align: right; font-weight: bold; color: var(--text);" id="synth-sma20">--</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 4px 0;">SMA (50):</td>
+                    <td style="text-align: right; font-weight: bold; color: var(--text);" id="synth-sma50">--</td>
                   </tr>
                 </table>
               </div>
@@ -250,9 +258,9 @@
 
       <div class="compare-inputs card">
         <div class="compare-fields">
-          <input type="text" id="compare-ticker-1" placeholder="e.g. AAPL" autocomplete="off">
+          <input type="text" id="compare-ticker-1" placeholder="e.g. Apple or AAPL" autocomplete="off">
           <span class="vs">VS</span>
-          <input type="text" id="compare-ticker-2" placeholder="e.g. TSLA" autocomplete="off">
+          <input type="text" id="compare-ticker-2" placeholder="e.g. Tesla or TSLA" autocomplete="off">
         </div>
         <button class="btn btn-primary" id="compare-btn">COMPARE SENTIMENT</button>
       </div>
@@ -339,13 +347,20 @@
 
         <!-- H2H Context Summary Box -->
         <div class="card compare-summary-card" id="compare-summary-box">
-          <h3>H2H SENTIMENT CONTEXT SUMMARY</h3>
-          <p id="compare-summary-text">Waiting for data compiling...</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <h3>AI AGENT H2H RESEARCH SYNTHESIS</h3>
+            <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0, 210, 255, 0.12); color: var(--text-cyan); border: 1px solid rgba(0, 210, 255, 0.3); font-weight: 700;">MULTI-FACTOR AI REASONING</span>
+          </div>
+          <p id="compare-summary-text" style="line-height: 1.6; margin-bottom: 12px; font-size: 13px;">Waiting for data compiling...</p>
+          <div id="compare-drivers-box" style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-cyan); margin-bottom: 8px; letter-spacing: 0.05em;">KEY COMPARATIVE SIGNALS & TECHNICAL CORRELATIONS</div>
+            <ul id="compare-drivers-list" style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--text-muted); line-height: 1.6;"></ul>
+          </div>
         </div>
 
         <!-- H2H Metrics Matrix Table -->
         <div class="card compare-table-card">
-          <h3>H2H METRICS MATRIX</h3>
+          <h3>H2H METRICS MATRIX (TECHNICAL & SENTIMENT)</h3>
           <table class="watchlist-table compare-metrics-table">
             <thead>
               <tr>
@@ -356,6 +371,48 @@
               </tr>
             </thead>
             <tbody>
+              <tr>
+                <td>LAST PRICE</td>
+                <td id="m-price-1" style="font-weight: 700;">--</td>
+                <td id="m-price-2" style="font-weight: 700;">--</td>
+                <td id="m-price-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>24H PRICE CHANGE</td>
+                <td id="m-change-1">--</td>
+                <td id="m-change-2">--</td>
+                <td id="m-change-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>TECHNICAL TREND</td>
+                <td id="m-trend-1">--</td>
+                <td id="m-trend-2">--</td>
+                <td id="m-trend-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>RSI (14-DAY)</td>
+                <td id="m-rsi-1">--</td>
+                <td id="m-rsi-2">--</td>
+                <td id="m-rsi-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>SMA (20-DAY)</td>
+                <td id="m-sma20-1">--</td>
+                <td id="m-sma20-2">--</td>
+                <td id="m-sma20-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>SMA (50-DAY)</td>
+                <td id="m-sma50-1">--</td>
+                <td id="m-sma50-2">--</td>
+                <td id="m-sma50-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
+              <tr>
+                <td>EMA (20-DAY)</td>
+                <td id="m-ema20-1">--</td>
+                <td id="m-ema20-2">--</td>
+                <td id="m-ema20-delta" style="text-align: right; font-weight: bold;">--</td>
+              </tr>
               <tr>
                 <td>SENTIMENT RATING</td>
                 <td id="m-rating-1">--</td>

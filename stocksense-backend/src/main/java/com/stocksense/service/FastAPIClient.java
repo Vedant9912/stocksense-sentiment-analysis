@@ -52,7 +52,7 @@ public class FastAPIClient {
                 .uri(uriBuilder -> uriBuilder.path("/sentiment/{ticker}").build(ticker))
                 .retrieve()
                 .bodyToMono(AiSentimentResultDto.class)
-                .timeout(Duration.ofSeconds(20))
+                .timeout(Duration.ofSeconds(30))
                 .doOnError(err -> log.error("AI service call failed for {}: {}", ticker, err.getMessage()))
                 .block();
 

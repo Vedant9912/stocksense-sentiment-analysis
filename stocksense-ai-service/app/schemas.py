@@ -27,6 +27,8 @@ class MarketDataResponse(BaseModel):
     price: float
     change: float
     change_percent: float
+    currency: Optional[str] = "USD"
+    resolved_symbol: Optional[str] = None
 
 class SentimentResponse(BaseModel):
     label: str
@@ -35,12 +37,17 @@ class SentimentResponse(BaseModel):
 class TechnicalResponse(BaseModel):
     rsi: float
     trend: str
+    sma_20: Optional[float] = None
+    sma_50: Optional[float] = None
+    ema_20: Optional[float] = None
 
 class NewsItemResponse(BaseModel):
     title: str
     source: str
     published_at: str
     url: str
+    label: Optional[str] = "neutral"
+    score: Optional[float] = 1.0
 
 class StructuredAnalysisResponse(BaseModel):
     symbol: str

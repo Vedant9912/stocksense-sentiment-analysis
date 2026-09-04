@@ -30,10 +30,30 @@ class SentimentTool:
                     "score": pred["score"]
                 }
         except Exception as e:
-            # Graceful degradation - fall back to neutral classification on error
-            print(f"SentimentTool analysis exception: {e}")
-            
+            print(f"SentimentTool analyze exception: {e}")
         return {"label": "neutral", "score": 1.0}
+
+    @staticmethod
+    def analyze_batch(texts: List[str]) -> List[Dict[str, Any]]:
+        """
+        Analyzes a batch of financial texts in a single call to the engine.
+        Returns a list of normalized dicts: [{'label': ..., 'score': ...}, ...]
+        """
+        if not texts:
+            return []
+        try:
+            engine = get_engine()
+            predictions = engine.predict(texts)
+            results = []
+            for p in predictions:
+                results.append({
+                    "label": p.get("label", "neutral"),
+                    "score": p.get("score", 1.0)
+                })
+            return results
+        except Exception as e:
+            print(f"SentimentTool batch analysis exception: {e}")
+            return [{"label": "neutral", "score": 1.0} for _ in texts]
 
     @staticmethod
     def aggregate_sentiment(results: List[Dict[str, Any]]) -> Dict[str, Any]:
